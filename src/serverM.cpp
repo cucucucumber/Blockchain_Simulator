@@ -190,12 +190,154 @@ int main(int argc, char *argv[])
 	            	// cout << "DEBUG: The return_msg is " << return_msg << endl;
 	            	// END DEBUG
 
-            		send(newfd, (const char*) return_msg.c_str(), sizeof(return_msg), 0);
+            		send(newfd, (const char*) return_msg.c_str(), strlen(return_msg.c_str()), 0);
             		cout << "The main server sent the current balance to client " << client_name << endl;
             	break;
 
             	//STATS()
             	case 2:
+            		found = false;
+	            	cout << "The main server received statistics request for " << requests[0] << endl;
+	            	for (int i=0; i<3; ++i)
+	            	{
+	            		// setup backend port number
+	            		backend_addr.sin_port = htons(Ports::backend_ports[i]);
+	            		backend_addr.sin_family = AF_INET;
+						backend_addr.sin_addr.s_addr = INADDR_ANY;
+						memset(backend_addr.sin_zero, '\0', sizeof backend_addr.sin_zero);
+
+						// DEBUG MSG
+						// cout << "DEBUG: the received buffer is " << buffer << endl;
+						// END DEBUG
+
+						// build the backend request
+						backend_msg = "check_wallet_muted";
+						backend_msg += " ";
+						backend_msg += requests[0];
+						backend_msg += " ";
+
+						// DEBUG MSG
+						// cout << "DEBUG: backend_msg is " << backend_msg << endl;
+						// END DEBUG
+
+						// contact backend server
+	            		sendto(backend_fd, (char*) backend_msg.c_str(), strlen(backend_msg.c_str()), 0, (const struct sockaddr*)&backend_addr, sizeof(backend_addr));
+			            bzero(buffer, sizeof(buffer));
+			            recvfrom(servers_fd, buffer, sizeof(buffer), 0, NULL, &addrlen);
+			            converted = buffer;
+
+			            // DEBUG MSG
+			            // cout << "DEBUG: The response from " << Ports::convert[i] << " is " << buffer << endl;
+			            // END DEBUG
+
+			            if(converted.compare("usr_not_found") != 0){
+			            	found = true;
+			            }
+	            	}
+
+	            	// gather all the transaction statistics
+	            	if(found) 
+	            	{
+	            		map<string, vector<int> > stats;
+	            		string stats_name;
+	            		for (int i=0; i<3; ++i)
+		            	{
+		            		// setup backend port number
+		            		backend_addr.sin_port = htons(Ports::backend_ports[i]);
+		            		backend_addr.sin_family = AF_INET;
+							backend_addr.sin_addr.s_addr = INADDR_ANY;
+							memset(backend_addr.sin_zero, '\0', sizeof backend_addr.sin_zero);
+
+							// DEBUG MSG
+							// cout << "DEBUG: the received buffer is " << buffer << endl;
+							// END DEBUG
+
+							// build the backend request
+							backend_msg = "stats";
+							backend_msg += " ";
+							backend_msg += requests[0];
+							backend_msg += " ";
+
+							// DEBUG MSG
+							// cout << "DEBUG: backend_msg is " << backend_msg << endl;
+							// END DEBUG
+
+							// contact backend server
+							sendto(backend_fd, (char*) backend_msg.c_str(), strlen(backend_msg.c_str()), 0, (const struct sockaddr*)&backend_addr, sizeof(backend_addr));
+				            converted = "";
+
+				            // looping over UDP datagrams
+				            while(1)
+				            {
+				            	bzero(buffer, sizeof(buffer));
+				            	recvfrom(servers_fd, buffer, sizeof(buffer), 0, NULL, &addrlen);
+				            	converted = buffer;
+
+				            	if(converted.compare("EOF") == 0) break;
+				         		else {
+				            		vector<int> stats_vec;
+
+				            		// convert buffer into vector
+				            		// receiving format is name+trans_number+trans_amount
+				            		token = strtok(buffer, " ");
+				            		stats_name = token;
+				            		token = strtok(NULL, " ");
+
+							        while(token != NULL)
+							        {
+							            stats_vec.push_back(stoi(token));
+							            token = strtok(NULL, " ");
+							        }
+
+							        // DEBUG MSG
+							        // cout << "DEBUG: name is " << stats_name << endl;
+							        // cout << "DEBUG: states_vec is " << stats_vec[0] << " " << stats_vec[1] << endl;
+							        // END DEBUG
+
+							        // if we already have the statistics about this name
+							        if(stats.find(stats_name) != stats.end())
+							        {
+							        	stats[stats_name][0] += stats_vec[0];
+							        	stats[stats_name][1] += stats_vec[1];
+							        }
+					            	else stats[stats_name] = stats_vec;
+				            	}
+				            }
+		            	}
+
+					    multimap<int, string, greater<int> > multi;
+					    for (auto& it : stats) {
+					        multi.insert(pair<int, string>(it.second[0], it.first));
+					    }
+					  
+		            	return_msg = "successed";
+		            	return_msg += " ";
+		            	for(auto &v: multi){
+		            		return_msg += v.second;
+		            		return_msg += " ";
+		            		return_msg += to_string(stats[v.second][0]);
+		            		return_msg += " ";
+		            		return_msg += to_string(stats[v.second][1]);
+		            		return_msg += " ";
+	            			// DEBUG MSG
+            				// cout << "DEBUG: " << v.second << " has count: " << stats[v.second][0] << " net: " << stats[v.second][1] << endl;
+            				// END DEBUG
+	            		}
+
+	            		// DEBUG MSG
+	            		// cout << "DEBUG: stats response is " << return_msg << endl;
+	            		// END DEBUG
+
+	            	} else {
+	            		return_msg = "user_not_found";
+	            	}
+
+	            	// DEBUG MSG
+	            	// cout << "DEBUG: The return_msg is " << return_msg << endl;
+	            	// END DEBUG
+
+            		send(newfd, (const char*) return_msg.c_str(), strlen(return_msg.c_str()), 0);
+            		cout << "The main server sent the statistic result to client " << client_name << endl;
 
             	break;
 

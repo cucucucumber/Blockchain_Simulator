@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     bool found;
 
     // read and parse my log file
-    int serial, amount, net_transaction;
+    int serial, amount, net_transaction, s_net_trans, s_trans_count;
     int last_serial = 0;
     map<string, map<string, vector<int> > > sending;
     map<string, map<string, vector<int> > > receiving;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
             found = false;
             net_transaction = 0;
 
-            // if the usr is in sender
+            // if the user is in sender
             if(sending.find(requests[1]) != sending.end())
             {
                 // DEBUG MSG
@@ -118,6 +118,7 @@ int main(int argc, char *argv[])
                 }
             }
 
+            // if the user is in receiver
             if(receiving.find(requests[1]) != receiving.end())
             {
                 // DEBUG MSG
@@ -183,6 +184,73 @@ int main(int argc, char *argv[])
                 sendto(server_sock, (char*)response.c_str(), strlen(response.c_str()), 0, (const struct sockaddr*)&server_addr, sizeof(server_addr));
             }
 
+            response = "EOF";
+        } else if (requests[0].compare("stats") == 0) {
+            // if the user is in sender
+            if(sending.find(requests[1]) != sending.end())
+            {
+                // DEBUG MSG
+                // cout << "DEBUG: found " << requests[1] << " in sending" << endl;
+                // END DEBUG
+
+                for(auto &s: sending.at(requests[1]))
+                {
+                    response = s.first;
+                    response += " ";
+                    s_trans_count = 0;
+                    s_net_trans = 0;
+
+                    for(int t: s.second)
+                    {
+                        s_trans_count += 1;
+                        s_net_trans -= t;
+                    }
+
+                    response += to_string(s_trans_count);
+                    response += " ";
+                    response += to_string(s_net_trans);
+                    response += " ";
+
+                    // DEBUG MSG
+                    // cout << "DEBUG: STATS response message to main server: " << response << endl;
+                    // END DEBUG
+
+                    sendto(server_sock, (char*)response.c_str(), strlen(response.c_str()), 0, (const struct sockaddr*)&server_addr, sizeof(server_addr));
+                }
+            }
+
+            // if the user is in receiver
+            if(receiving.find(requests[1]) != receiving.end())
+            {
+                // DEBUG MSG
+                // cout << "DEBUG: found " << requests[1] << " in receiving" << endl;
+                // END DEBUG
+
+                for(auto &s: receiving.at(requests[1]))
+                {
+                    response = s.first;
+                    response += " ";
+                    s_trans_count = 0;
+                    s_net_trans = 0;
+
+                    for(int t: s.second)
+                    {
+                        s_trans_count += 1;
+                        s_net_trans += t;
+                    }
+
+                    response += to_string(s_trans_count);
+                    response += " ";
+                    response += to_string(s_net_trans);
+                    response += " ";
+
+                    // DEBUG MSG
+                    // cout << "DEBUG: STATS response message to main server: " << response << endl;
+                    // END DEBUG
+
+                    sendto(server_sock, (char*)response.c_str(), strlen(response.c_str()), 0, (const struct sockaddr*)&server_addr, sizeof(server_addr));
+                }
+            }
             response = "EOF";
         }
 
