@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	int newfd, maxfd, wallet, rand_pick;
 	int last_serial = 0;
 	char buffer[1024] = {0};
-	bool found, valid;
+	bool found, valid, invalid_sender, invalid_receiver;
 	string client_name;
 	string return_msg;
 	string backend_msg;
@@ -346,6 +346,8 @@ int main(int argc, char *argv[])
             	case 3:
             		valid = true;
             		found = false;
+            		invalid_sender = true;
+            		invalid_receiver = true;
 	            	wallet = 1000;
 	            	cout << "The main server received from " << requests[0] \
 	            	<< " to transfer  " << requests[2] << " coins to " << requests[1] << \
@@ -374,6 +376,7 @@ int main(int argc, char *argv[])
 
 			            if(converted.compare("usr_not_found") != 0){
 			            	found = true;
+			            	invalid_sender = false;
 			            	wallet += stoi(converted);
 			            }
 	            	}
@@ -422,6 +425,7 @@ int main(int argc, char *argv[])
 
 				            if(converted.compare("usr_not_found") != 0){
 				            	found = true;
+				            	invalid_receiver = false;
 				            	// set the last transaction number
 				            	last_serial = max(last_serial, stoi(converted));
 
@@ -471,11 +475,11 @@ int main(int argc, char *argv[])
 	            		return_msg += " ";
 
 	            	} else {
-	            		if(valid && return_msg.compare("invalid_sender") != 0)
+	            		if(valid && return_msg.compare("invalid_sender") != 0 && invalid_receiver)
 	            		{
 	            			return_msg = "invalid_receiver";
 	            			return_msg += " ";
-	            		} else if (valid && return_msg.compare("invalid_sender") == 0) {
+	            		} else if (valid && return_msg.compare("invalid_sender") == 0 && invalid_receiver) {
 	            			return_msg = "both_invalid";
 	            			return_msg += " ";
 	            		}
