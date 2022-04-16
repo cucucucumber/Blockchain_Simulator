@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 	            while(token != NULL)
 	            {
 	            	// DEBUG MSG
-				   	//cout << "DEBUG: Received response token: " << token << endl;
+				   	// cout << "DEBUG: Received response token: " << token << endl;
 				   	// END DEBUG
 
 	            	response.push_back(token);

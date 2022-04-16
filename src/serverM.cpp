@@ -471,11 +471,11 @@ int main(int argc, char *argv[])
 	            		return_msg += " ";
 
 	            	} else {
-	            		if(valid && return_msg.compare("invalid_sender ") != 0)
+	            		if(valid && return_msg.compare("invalid_sender") != 0)
 	            		{
 	            			return_msg = "invalid_receiver";
 	            			return_msg += " ";
-	            		} else if (valid && return_msg.compare("invalid_sender ") == 0) {
+	            		} else if (valid && return_msg.compare("invalid_sender") == 0) {
 	            			return_msg = "both_invalid";
 	            			return_msg += " ";
 	            		}

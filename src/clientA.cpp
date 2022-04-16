@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 	// initiate, follow the instruction from GeekforGeek
 	struct sockaddr_in serverM_addr;
 	char buffer[1024] = {0};
-	string request, response_states;
+	string request;
 	string argv1, argv2;
 	int sock;
 	char* token;
