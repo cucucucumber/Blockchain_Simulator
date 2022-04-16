@@ -462,7 +462,7 @@ int main(int argc, char *argv[])
 			            bzero(buffer, sizeof(buffer));
 			            recvfrom(servers_fd, buffer, sizeof(buffer), 0, NULL, &addrlen);
 			            cout << "The main server received the feedback from server " << Ports::convert[rand_pick]\
-			            << " using UDP over port" << Ports::backend_ports[rand_pick] << endl;
+			            << " using UDP over port " << Ports::backend_ports[rand_pick] << endl;
 
 			            // construct the response message to client
 	            		return_msg = "successed";
