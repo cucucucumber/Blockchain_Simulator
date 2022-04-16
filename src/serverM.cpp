@@ -414,10 +414,18 @@ int main(int argc, char *argv[])
 	            	if(invalid_sender) {
 	            		return_msg = "invalid_sender";
 	            		return_msg += " ";
+
+	            		// DEBUG MSG
+	            		// cout << "DEBUG: sender is invalid" << endl;
+	            		// END DEBUG
 	            	}
 
 	            	if(invalid_receiver)
 	            	{
+	            		// DEBUG MSG
+	            		// cout << "DEBUG: receiver is invalid" << endl;
+	            		// END DEBUG
+
 	            		if(invalid_sender)
 	            		{
 	            			return_msg = "both_invalid";
@@ -430,51 +438,52 @@ int main(int argc, char *argv[])
 	            	}
 
 	            	// if both exists and the sender has more money than transfer amount
-	            	if(!invalid_receiver && !invalid_sender && wallet >= stoi(requests[2]))
+	            	if(!invalid_receiver && !invalid_sender)
 	            	{
-	            		// update last_serial
-	            		last_serial += 1;
+	            		if(wallet >= stoi(requests[2]))
+	            		{
+	            			// update last_serial
+		            		last_serial += 1;
 
-	            		// setup backend port number, random select a server
-	            		srand (time(0));
-	            		rand_pick = rand() % 3;
-	            		backend_addr.sin_port = htons(Ports::backend_ports[rand_pick]);
-	            		backend_addr.sin_family = AF_INET;
-						backend_addr.sin_addr.s_addr = INADDR_ANY;
-						memset(backend_addr.sin_zero, '\0', sizeof backend_addr.sin_zero);
+		            		// setup backend port number, random select a server
+		            		srand (time(0));
+		            		rand_pick = rand() % 3;
+		            		backend_addr.sin_port = htons(Ports::backend_ports[rand_pick]);
+		            		backend_addr.sin_family = AF_INET;
+							backend_addr.sin_addr.s_addr = INADDR_ANY;
+							memset(backend_addr.sin_zero, '\0', sizeof backend_addr.sin_zero);
 
-						// build the backend request
-						backend_msg = "make_transaction";
-						backend_msg += " ";
-						backend_msg += requests[0];
-						backend_msg += " ";
-						backend_msg += requests[1];
-						backend_msg += " ";
-						backend_msg += requests[2];
-						backend_msg += " ";
-						backend_msg += to_string(last_serial);
+							// build the backend request
+							backend_msg = "make_transaction";
+							backend_msg += " ";
+							backend_msg += requests[0];
+							backend_msg += " ";
+							backend_msg += requests[1];
+							backend_msg += " ";
+							backend_msg += requests[2];
+							backend_msg += " ";
+							backend_msg += to_string(last_serial);
 
-						// contact backend server
-						cout << "The main server sent a request to server " << Ports::convert[rand_pick] << endl;
-	            		sendto(backend_fd, (char*) backend_msg.c_str(), strlen(backend_msg.c_str()), 0, (const struct sockaddr*)&backend_addr, sizeof(backend_addr));
-			            bzero(buffer, sizeof(buffer));
-			            recvfrom(servers_fd, buffer, sizeof(buffer), 0, NULL, &addrlen);
-			            cout << "The main server received the feedback from server " << Ports::convert[rand_pick]\
-			            << " using UDP over port " << Ports::backend_ports[rand_pick] << endl;
+							// contact backend server
+							cout << "The main server sent a request to server " << Ports::convert[rand_pick] << endl;
+		            		sendto(backend_fd, (char*) backend_msg.c_str(), strlen(backend_msg.c_str()), 0, (const struct sockaddr*)&backend_addr, sizeof(backend_addr));
+				            bzero(buffer, sizeof(buffer));
+				            recvfrom(servers_fd, buffer, sizeof(buffer), 0, NULL, &addrlen);
+				            cout << "The main server received the feedback from server " << Ports::convert[rand_pick]\
+				            << " using UDP over port " << Ports::backend_ports[rand_pick] << endl;
 
-			            // construct the response message to client
-	            		return_msg = "successed";
-	            		return_msg += " ";
-	            		return_msg += to_string(wallet - stoi(requests[2]));
-	            		return_msg += " ";
-
-	            	} else {
-	            		return_msg = "insufficient_balance";
-            			return_msg += " ";
-            			return_msg += to_string(wallet);
-            			return_msg += " ";
+				            // construct the response message to client
+		            		return_msg = "successed";
+		            		return_msg += " ";
+		            		return_msg += to_string(wallet - stoi(requests[2]));
+		            		return_msg += " ";
+	            		} else {
+	            			return_msg = "insufficient_balance";
+	            			return_msg += " ";
+	            			return_msg += to_string(wallet);
+	            			return_msg += " ";
+	            		}
 	            	}
-
 	            	send(newfd, (const char*) return_msg.c_str(), strlen(return_msg.c_str()), 0);
             		cout << "The main server sent the result of the transaction to client " << client_name << endl;
             	break;
