@@ -345,7 +345,6 @@ int main(int argc, char *argv[])
             	// code of shame.... but i just don't have that energy to figure out all the reference/pointer thing
             	case 3:
             		valid = true;
-            		found = false;
             		invalid_receiver = true;
             		invalid_sender = true;
 	            	wallet = 1000;
@@ -375,14 +374,13 @@ int main(int argc, char *argv[])
 			            converted = buffer;
 
 			            if(converted.compare("usr_not_found") != 0){
-			            	found = true;
 			            	invalid_sender = false;
 			            	wallet += stoi(converted);
 			            }
 	            	}
 
 	            	// check if sender exists and has sufficient balance
-	            	if(found) 
+	            	if(!invalid_sender) 
 	            	{
 	            		if(wallet < stoi(requests[2]))
 	            		{
@@ -398,10 +396,9 @@ int main(int argc, char *argv[])
 	            		return_msg += " ";
 	            	}
 
-	            	if(found && valid)
+	            	if(!invalid_sender && valid)
 	            	{
 	            		// check if receiver exists
-		            	found = false;
 		            	for (int i=0; i<3; ++i)
 		            	{
 		            		// setup backend port number
@@ -424,7 +421,7 @@ int main(int argc, char *argv[])
 				            converted = buffer;
 
 				            if(converted.compare("usr_not_found") != 0){
-				            	found = true;
+				            	invalid_receiver = false;
 				            	// set the last transaction number
 				            	last_serial = max(last_serial, stoi(converted));
 
@@ -435,7 +432,7 @@ int main(int argc, char *argv[])
 		            	}
 	            	}
 
-	            	if(found && valid)
+	            	if(!invalid_receiver && valid)
 	            	{
 	            		// update last_serial
 	            		last_serial += 1;
