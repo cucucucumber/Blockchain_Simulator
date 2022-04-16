@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	int newfd, maxfd, wallet, rand_pick;
 	int last_serial = 0;
 	char buffer[1024] = {0};
-	bool found, valid, invalid_receiver, invalid_sender;
+	bool found, invalid_receiver, invalid_sender;
 	string client_name;
 	string return_msg;
 	string backend_msg;
@@ -344,7 +344,6 @@ int main(int argc, char *argv[])
             	// TRANSACTION()
             	// code of shame.... but i just don't have that energy to figure out all the reference/pointer thing
             	case 3:
-            		valid = true;
             		invalid_receiver = true;
             		invalid_sender = true;
 	            	wallet = 1000;
@@ -352,7 +351,7 @@ int main(int argc, char *argv[])
 	            	<< " to transfer  " << requests[2] << " coins to " << requests[1] << \
 	            	" using TCP over port " << ntohs(client_addr.sin_port) << endl;
 
-	            	// first we check balance, just like before
+	            	// first we check balance and check if sender exists
 	            	for (int i=0; i<3; ++i)
 	            	{
 	            		// setup backend port number
@@ -379,61 +378,59 @@ int main(int argc, char *argv[])
 			            }
 	            	}
 
-	            	// check if sender exists and has sufficient balance
-	            	if(!invalid_sender) 
+            		// check if receiver exists
+	            	for (int i=0; i<3; ++i)
 	            	{
-	            		if(wallet < stoi(requests[2]))
-	            		{
-	            			valid = false;
-	            			return_msg = "insufficient_balance";
-	            			return_msg += " ";
-	            			return_msg += to_string(wallet);
-	            			return_msg += " ";
-	            		}
+	            		// setup backend port number
+	            		backend_addr.sin_port = htons(Ports::backend_ports[i]);
+	            		backend_addr.sin_family = AF_INET;
+						backend_addr.sin_addr.s_addr = INADDR_ANY;
+						memset(backend_addr.sin_zero, '\0', sizeof backend_addr.sin_zero);
 
-	            	} else {
+						// build the backend request, mute the response
+						backend_msg = "check_wallet_muted_serial";
+						backend_msg += " ";
+						// now check the receiver
+						backend_msg += requests[1];
+						backend_msg += " ";
+
+						// contact backend server
+	            		sendto(backend_fd, (char*) backend_msg.c_str(), strlen(backend_msg.c_str()), 0, (const struct sockaddr*)&backend_addr, sizeof(backend_addr));
+			            bzero(buffer, sizeof(buffer));
+			            recvfrom(servers_fd, buffer, sizeof(buffer), 0, NULL, &addrlen);
+			            converted = buffer;
+
+			            if(converted.compare("usr_not_found") != 0){
+			            	invalid_receiver = false;
+			            	// set the last transaction number
+			            	last_serial = max(last_serial, stoi(converted));
+
+			            	// DEBUG MSG
+			            	// cout << "DEBUG: last_serial is " << last_serial << endl;
+			            	// END DEBUG
+			            }
+	            	}
+
+	            	if(invalid_sender) {
 	            		return_msg = "invalid_sender";
 	            		return_msg += " ";
 	            	}
 
-	            	// check if receiver exists
-	            	if(valid)
+	            	if(invalid_receiver)
 	            	{
-	            		// check if receiver exists
-		            	for (int i=0; i<3; ++i)
-		            	{
-		            		// setup backend port number
-		            		backend_addr.sin_port = htons(Ports::backend_ports[i]);
-		            		backend_addr.sin_family = AF_INET;
-							backend_addr.sin_addr.s_addr = INADDR_ANY;
-							memset(backend_addr.sin_zero, '\0', sizeof backend_addr.sin_zero);
+	            		if(invalid_sender)
+	            		{
+	            			return_msg = "both_invalid";
+	            			return_msg += " ";
 
-							// build the backend request, mute the response
-							backend_msg = "check_wallet_muted_serial";
-							backend_msg += " ";
-							// now check the receiver
-							backend_msg += requests[1];
-							backend_msg += " ";
-
-							// contact backend server
-		            		sendto(backend_fd, (char*) backend_msg.c_str(), strlen(backend_msg.c_str()), 0, (const struct sockaddr*)&backend_addr, sizeof(backend_addr));
-				            bzero(buffer, sizeof(buffer));
-				            recvfrom(servers_fd, buffer, sizeof(buffer), 0, NULL, &addrlen);
-				            converted = buffer;
-
-				            if(converted.compare("usr_not_found") != 0){
-				            	invalid_receiver = false;
-				            	// set the last transaction number
-				            	last_serial = max(last_serial, stoi(converted));
-
-				            	// DEBUG MSG
-				            	// cout << "DEBUG: last_serial is " << last_serial << endl;
-				            	// END DEBUG
-				            }
-		            	}
+	            		} else {
+	            			return_msg = "invalid_receiver";
+	            			return_msg += " ";
+	            		}
 	            	}
 
-	            	if(!invalid_receiver && valid)
+	            	// if both exists and the sender has more money than transfer amount
+	            	if(!invalid_receiver && !invalid_sender && wallet >= stoi(requests[2]))
 	            	{
 	            		// update last_serial
 	            		last_serial += 1;
@@ -472,14 +469,10 @@ int main(int argc, char *argv[])
 	            		return_msg += " ";
 
 	            	} else {
-	            		if(valid && !invalid_sender && invalid_receiver)
-	            		{
-	            			return_msg = "invalid_receiver";
-	            			return_msg += " ";
-	            		} else if (valid && invalid_sender && invalid_receiver) {
-	            			return_msg = "both_invalid";
-	            			return_msg += " ";
-	            		}
+	            		return_msg = "insufficient_balance";
+            			return_msg += " ";
+            			return_msg += to_string(wallet);
+            			return_msg += " ";
 	            	}
 
 	            	send(newfd, (const char*) return_msg.c_str(), strlen(return_msg.c_str()), 0);
