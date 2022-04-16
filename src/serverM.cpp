@@ -396,7 +396,8 @@ int main(int argc, char *argv[])
 	            		return_msg += " ";
 	            	}
 
-	            	if(!invalid_sender && valid)
+	            	// check if receiver exists
+	            	if(valid)
 	            	{
 	            		// check if receiver exists
 		            	for (int i=0; i<3; ++i)
