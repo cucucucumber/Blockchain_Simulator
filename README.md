@@ -33,7 +33,7 @@ Project Root
 │
 ├── obj (empty object folder)
 │
-├── data
+├── data (you may replace the data files)
 │   ├── block1.txt
 │   ├── block2.txt
 │   ├── block3.txt

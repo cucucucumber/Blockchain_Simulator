@@ -2,7 +2,7 @@
 CC := g++
 
 # compiler flags:
-CCFLAGS  :=
+CCFLAGS  := -Wall -std=c++11
 CCDBGFLAGS := -DDEBUG -G -g 
 LDFLAGS :=
 OBJFLAGS := -c
